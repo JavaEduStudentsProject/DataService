@@ -71,6 +71,7 @@ public class MessageListener {
         log.info("Products receive for Front");
         mp.sendMessage("sendALlProducts", "[" + message.toString().trim() + "]");
 
+
     }
 
     @KafkaListener(topics = "SaveHamsters", containerFactory = "kafkaListenerContainerFactory")
@@ -191,8 +192,8 @@ public class MessageListener {
     @KafkaListener(topics = "SaveOrders", containerFactory = "kafkaListenerContainerFactory")
     public void SaveOrders(String orders) {
         log.info("Starting saving orders");
-        String[] splitted = orders.split("\\{'id': \\w+, 'products'");
-        Pattern p = Pattern.compile("\\{'id': \\w+, 'products'");
+        String[] splitted = orders.split("\\{\"products\"");
+        Pattern p = Pattern.compile("\\{\"products\"");
         List<String> allMatches = new ArrayList<String>();
         Matcher m = p.matcher(orders);
         while (m.find()) {
@@ -297,7 +298,6 @@ public class MessageListener {
         mt.findAndReplace(Query.query(Criteria.where("_id").is(id)), user);
         log.info("User with id {} update", id);
     }
-
     @KafkaListener(topics = "GetAllOrders", containerFactory = "kafkaListenerContainerFactory")
 //    @Cacheable(value="JsonHamsterOrder")
     public void GetAllOrders() {
@@ -329,21 +329,21 @@ public class MessageListener {
         log.info(message.toString());
         mp.sendMessage("sendReviews", reviews);
 
-//        List<JsonReview> list = mt.findAll(JsonReview.class);
-//        StringBuilder message = new StringBuilder();
-//        message.append("[");
-//        for (JsonReview jsonReview : list) {
-//            message.append("'{ \"id\": \"" + jsonReview.getId() + "\",\"productId\":\"" + jsonReview.getProductId()
-//                    + "\",\"userId\":\"" + jsonReview.getUserId() + "\",\"rating\":\"" + jsonReview.getRating()
-//                    + "\",\"review\":\"" + jsonReview.getReview() + "\"}'");
-//            message.append(",");
-//        }
-//        String reviews = message.substring(0, message.length() - 1) + "]";
-//        assert message != null;
-//        message.append("]");
-//        mp.sendMessage("sendReviews", reviews);
+    @KafkaListener(topics = "GetAllOrders", containerFactory = "kafkaListenerContainerFactory")
+//    @Cacheable(value="JsonHamsterOrder")
+    public void GetAllOrders(){
+        List<JsonHamsterOrder> list= mt.findAll(JsonHamsterOrder.class);
+        StringBuilder message = new StringBuilder();
+        message.append("[");
+        for (JsonHamsterOrder jsonHamsterOrder : list) {
+            message.append("{ \"id\":" +jsonHamsterOrder.getId()+","+jsonHamsterOrder.getOrderItems().substring(1,jsonHamsterOrder.getOrderItems().length()));
+            message.append(",");
+        }
+        String orders = message.substring(0,message.length()-1)+"]";
+        assert message != null;
+        mp.sendMessage("SendHamster", orders);
+        System.out.println(orders);
     }
-
 
     @KafkaListener(topics = "requestOrdersDataFromDB", containerFactory = "kafkaListenerContainerFactory")
 //    @Cacheable(value = "JsonHamsterOrder")
