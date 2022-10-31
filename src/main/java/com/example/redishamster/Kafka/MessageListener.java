@@ -1,7 +1,6 @@
 package com.example.redishamster.Kafka;
 
 import com.bezkoder.spring.security.mongodb.models.User;
-import com.example.orchestrator.model.JsonHamsterComment;
 import com.example.orchestrator.model.JsonHamsterItem;
 import com.example.orchestrator.model.JsonHamsterOrder;
 
@@ -152,41 +151,6 @@ public class MessageListener {
         mt.insert(new JsonHamsterOrder((int) orderId, ord));
         log.info("Order {} save", order);
     }
-
-    @KafkaListener(topics = "saveRateDB", containerFactory = "kafkaListenerContainerFactory")
-    public void saveRate(String str) {
-        String rate = str.substring(9, 10);
-        String idProduct = str.substring(24, str.length() - 1);
-        JsonHamsterItem jhi = mt.findById(Integer.parseInt(idProduct), JsonHamsterItem.class);
-        String firstJsonPart = jhi.getItemJson().substring(0, jhi.getItemJson().indexOf("rating") + 9);
-        String secondJsonPart = jhi.getItemJson().substring(jhi.getItemJson().indexOf("rating") + 13);
-        if (mt.exists(Query.query(Criteria.where("id").is(idProduct)), rate)) {
-            idProduct += System.currentTimeMillis();
-        }
-
-        List<JsonHamsterComment> listComments = mt.findAll(JsonHamsterComment.class);
-        double sum = 0;
-        int count = 1;
-        for (var comment : listComments) {
-            if (comment.getProductId() == Integer.parseInt(idProduct)) {
-                sum += comment.getRate();
-                count++;
-            }
-        }
-        sum = sum + Integer.parseInt(rate);
-        double sumRating = sum / count;
-        double result = Math.rint(100.0 * sumRating) / 100.0;
-
-        String jsonUpdating = firstJsonPart + result + secondJsonPart;
-        jhi.setItemJson(jsonUpdating);
-        mt.findAndReplace(Query.query(Criteria.where("_id").is(Integer.parseInt(idProduct))), jhi);
-        JsonHamsterComment comment = new JsonHamsterComment(Integer.parseInt(idProduct), Integer.parseInt(rate));
-        mt.insert(comment);
-
-        log.info("Rate and ID {} save", str);
-
-    }
-
     @KafkaListener(topics = "SaveOrders", containerFactory = "kafkaListenerContainerFactory")
     public void SaveOrders(String orders) {
         log.info("Starting saving orders");
@@ -316,14 +280,14 @@ public class MessageListener {
     @KafkaListener(topics = "GetAllOrders", containerFactory = "kafkaListenerContainerFactory")
 //    @Cacheable(value="JsonHamsterOrder")
     public void GetAllOrders() {
-        List<JsonHamsterOrder> list= mt.findAll(JsonHamsterOrder.class);
+        List<JsonHamsterOrder> list = mt.findAll(JsonHamsterOrder.class);
         StringBuilder message = new StringBuilder();
         message.append("[");
         for (JsonHamsterOrder jsonHamsterOrder : list) {
-            message.append("{ \"id\":" +jsonHamsterOrder.getId()+","+jsonHamsterOrder.getOrderItems().substring(1,jsonHamsterOrder.getOrderItems().length()));
+            message.append("{ \"id\":" + jsonHamsterOrder.getId() + "," + jsonHamsterOrder.getOrderItems().substring(1, jsonHamsterOrder.getOrderItems().length()));
             message.append(",");
         }
-        String orders = message.substring(0,message.length()-1)+"]";
+        String orders = message.substring(0, message.length() - 1) + "]";
         assert message != null;
         mp.sendMessage("SendHamster", orders);
         System.out.println(orders);
@@ -383,46 +347,70 @@ public class MessageListener {
             return null;
         }
     }
-
-    public String findUsername(String user) {
-        Pattern p = Pattern.compile("(?<=username\\\"\\:\\s\\\").*(?=\\\",)");
-        Matcher m = p.matcher(user);
-        if (m.find()) {
-            return m.group();
-        } else {
-            System.out.println("Json doesn't contain an username");
-            return null;
-        }
-    }
-
-    public String findEmail(String user) {
-        Pattern p = Pattern.compile("(?<=\\\"email\\\"\\:\\s\\\").*(?=\\\",)");
-        Matcher m = p.matcher(user);
-        if (m.find()) {
-            return m.group();
-        } else {
-            System.out.println("Json doesn't contain an username");
-            return null;
-        }
-    }
-
-    public String findPassword(String user) {
-        Pattern p = Pattern.compile("(?<=\\\"password\\\"\\:\\s\\\").*(?=\\\")");
-        Matcher m = p.matcher(user);
-        if (m.find()) {
-            return m.group();
-        } else {
-            System.out.println("Json doesn't contain an username");
-            return null;
-        }
-    }
+//
+//    public String findUsername(String user) {
+//        Pattern p = Pattern.compile("(?<=username\\\"\\:\\s\\\").*(?=\\\",)");
+//        Matcher m = p.matcher(user);
+//        if (m.find()) {
+//            return m.group();
+//        } else {
+//            System.out.println("Json doesn't contain an username");
+//            return null;
+//        }
+//    }
+//
+//    public String findEmail(String user) {
+//        Pattern p = Pattern.compile("(?<=\\\"email\\\"\\:\\s\\\").*(?=\\\",)");
+//        Matcher m = p.matcher(user);
+//        if (m.find()) {
+//            return m.group();
+//        } else {
+//            System.out.println("Json doesn't contain an username");
+//            return null;
+//        }
+//    }
+//
+//    public String findPassword(String user) {
+//        Pattern p = Pattern.compile("(?<=\\\"password\\\"\\:\\s\\\").*(?=\\\")");
+//        Matcher m = p.matcher(user);
+//        if (m.find()) {
+//            return m.group();
+//        } else {
+//            System.out.println("Json doesn't contain an username");
+//            return null;
+//        }
+//    }
 
     @KafkaListener(topics = "SaveReview", containerFactory = "reviewKafkaListenerContainerFactory")
-    public void SaveUser(JsonReview review) {
+    public void SaveReview(JsonReview review) {
         long reviewId = System.currentTimeMillis();
         if (mt.exists(Query.query(Criteria.where("_id").is(reviewId)), User.class)) {
             reviewId += System.currentTimeMillis();
         }
+
+        int idProduct = Integer.parseInt(review.getProductId());
+        int rateProduct = review.getRating();
+
+        JsonHamsterItem jhi = mt.findById(idProduct, JsonHamsterItem.class);
+        String firstJsonPart = jhi.getItemJson().substring(0, jhi.getItemJson().indexOf("rating") + 9);
+        String secondJsonPart = jhi.getItemJson().substring(jhi.getItemJson().indexOf("rating") + 13);
+
+        List<JsonReview> commentList = mt.findAll(JsonReview.class);
+        double sum = 0;
+        int count = 1;
+        for (var comment : commentList) {
+            if (Integer.parseInt(comment.getProductId()) == idProduct) {
+                sum += comment.getRating();
+                count++;
+            }
+        }
+        sum = sum + rateProduct;
+        double sumRating = sum / count;
+        double result = Math.rint(100.0 * sumRating) / 100.0;
+        String jsonUpdating = firstJsonPart + result + secondJsonPart;
+        jhi.setItemJson(jsonUpdating);
+        System.out.println(jsonUpdating);
+        mt.findAndReplace(Query.query(Criteria.where("_id").is(idProduct)), jhi);
         review.setId(String.valueOf(reviewId));
         mt.insert(review);
         log.info("Review {} save", review);
