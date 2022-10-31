@@ -70,8 +70,6 @@ public class MessageListener {
         }
         log.info("Products receive for Front");
         mp.sendMessage("sendALlProducts", "[" + message.toString().trim() + "]");
-
-
     }
 
     @KafkaListener(topics = "SaveHamsters", containerFactory = "kafkaListenerContainerFactory")
@@ -298,26 +296,11 @@ public class MessageListener {
         mt.findAndReplace(Query.query(Criteria.where("_id").is(id)), user);
         log.info("User with id {} update", id);
     }
-    @KafkaListener(topics = "GetAllOrders", containerFactory = "kafkaListenerContainerFactory")
-//    @Cacheable(value="JsonHamsterOrder")
-    public void GetAllOrders() {
-        List<JsonHamsterOrder> list = mt.findAll(JsonHamsterOrder.class);
-        StringBuilder message = new StringBuilder();
-        message.append("[");
-        for (JsonHamsterOrder jsonHamsterOrder : list) {
-            message.append("{ \"id\":" + jsonHamsterOrder.getId() + "," + jsonHamsterOrder.getOrderItems().substring(1, jsonHamsterOrder.getOrderItems().length()));
-            message.append(",");
-        }
-        String orders = message.substring(0, message.length() - 1) + "]";
-        assert message != null;
-        message.append("]");
-        mp.sendMessage("SendHamster", orders);
-        System.out.println(orders);
-    }
+
     @KafkaListener(topics = "GetAllReviews", containerFactory = "kafkaListenerContainerFactory")
 //    @Cacheable(value="JsonHamsterOrder")
     public void GetAllReviews() {
-        List<JsonReview> list= mt.findAll(JsonReview.class);
+        List<JsonReview> list = mt.findAll(JsonReview.class);
         StringBuilder message = new StringBuilder();
         message.append("[");
         for (JsonReview jsonHamsterUser : list) {
@@ -328,10 +311,11 @@ public class MessageListener {
         assert message != null;
         log.info(message.toString());
         mp.sendMessage("sendReviews", reviews);
+    }
 
     @KafkaListener(topics = "GetAllOrders", containerFactory = "kafkaListenerContainerFactory")
 //    @Cacheable(value="JsonHamsterOrder")
-    public void GetAllOrders(){
+    public void GetAllOrders() {
         List<JsonHamsterOrder> list= mt.findAll(JsonHamsterOrder.class);
         StringBuilder message = new StringBuilder();
         message.append("[");
