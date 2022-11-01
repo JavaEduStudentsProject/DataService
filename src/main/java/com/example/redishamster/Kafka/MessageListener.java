@@ -389,7 +389,7 @@ public class MessageListener {
         }
 
         int idProduct = Integer.parseInt(review.getProductId());
-        int rateProduct = review.getRating();
+        double rateProduct = review.getRating();
 
         JsonHamsterItem jhi = mt.findById(idProduct, JsonHamsterItem.class);
         String firstJsonPart = jhi.getItemJson().substring(0, jhi.getItemJson().indexOf("rating") + 9);
